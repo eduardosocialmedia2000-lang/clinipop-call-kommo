@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinipop · Como usar o Kommo no dia a dia</title>
+<style>
+  :root {
+    --orange: #F26622;
+    --teal: #3FB6AA;
+    --teal-dark: #2a6f6a;
+    --cream: #FAF6EE;
+    --ink: #1f2933;
+    --muted: #5b6770;
+    --bg-soft: #f6f8f8;
+    --border: #d9e2e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--cream);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 6vh 8vw;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .25s ease;
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* Topbar */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 18px 32px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--muted);
+    z-index: 10;
+  }
+  .brand { font-weight: 700; color: var(--teal-dark); letter-spacing: .5px; }
+  .brand b { color: var(--orange); }
+  .counter { font-variant-numeric: tabular-nums; }
+
+  /* Bottom nav */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 20px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 10;
+  }
+  .nav button {
+    background: transparent; border: 1.5px solid var(--border); color: var(--muted);
+    padding: 8px 18px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    transition: all .15s;
+  }
+  .nav button:hover { border-color: var(--teal); color: var(--teal-dark); }
+  .nav button:disabled { opacity: .35; cursor: not-allowed; }
+  .progress {
+    flex: 1; max-width: 280px; margin: 0 20px;
+    height: 3px; background: var(--border); border-radius: 999px; position: relative; overflow: hidden;
+  }
+  .progress-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--orange); border-radius: 999px; transition: width .3s; }
+
+  /* Typography */
+  .eyebrow { font-size: 13px; font-weight: 700; color: var(--orange); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: clamp(34px, 5.5vw, 64px); line-height: 1.1; color: var(--teal-dark); font-weight: 800; letter-spacing: -.02em; }
+  h2 { font-size: clamp(28px, 4vw, 44px); line-height: 1.15; color: var(--teal-dark); font-weight: 800; letter-spacing: -.01em; margin-bottom: 24px; }
+  h3 { font-size: clamp(20px, 2.5vw, 28px); color: var(--teal-dark); font-weight: 700; margin-bottom: 12px; }
+  p.lead { font-size: clamp(18px, 2vw, 24px); color: var(--muted); margin-top: 18px; max-width: 800px; }
+  p { font-size: clamp(15px, 1.4vw, 18px); color: var(--muted); }
+
+  /* Slide variants */
+  .cover h1 i { font-style: italic; color: var(--orange); }
+  .cover .meta { margin-top: 32px; color: var(--muted); font-size: 15px; }
+  .cover .meta span { display: inline-block; margin-right: 24px; }
+
+  .quote-slide { text-align: center; align-items: center; }
+  .quote-slide .quote {
+    font-size: clamp(32px, 4.5vw, 52px); line-height: 1.2;
+    color: var(--teal-dark); font-weight: 800; letter-spacing: -.02em;
+    max-width: 1000px;
+  }
+  .quote-slide .quote em { font-style: italic; color: var(--orange); font-weight: 800; }
+  .quote-slide .quote-cap { margin-top: 32px; font-size: 14px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* Card grid */
+  .grid {
+    display: grid; gap: 18px;
+    margin-top: 32px;
+  }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  @media (max-width: 900px) {
+    .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr 1fr; }
+    .grid.cols-2 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 18px;
+    padding: 22px 24px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .card.accent { border-left: 4px solid var(--orange); }
+  .card.teal { border-left: 4px solid var(--teal); }
+  .card.warn { border-left: 4px solid #d97706; background: #fff8ed; }
+  .card.danger { border-left: 4px solid #dc2626; background: #fef2f2; }
+  .card.success { border-left: 4px solid #16a34a; background: #f0fdf4; }
+  .card .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: var(--orange); color: #fff; border-radius: 50%;
+    font-weight: 800; font-size: 16px; margin-bottom: 12px;
+  }
+  .card h4 { font-size: 18px; color: var(--teal-dark); margin-bottom: 6px; font-weight: 700; }
+  .card p { font-size: 14px; color: var(--muted); }
+  .card .icon { font-size: 28px; margin-bottom: 10px; display: block; }
+
+  /* Agenda list */
+  .agenda { list-style: none; margin-top: 28px; max-width: 800px; }
+  .agenda li {
+    display: flex; align-items: flex-start; gap: 18px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+    font-size: clamp(16px, 1.5vw, 19px);
+  }
+  .agenda li:last-child { border-bottom: none; }
+  .agenda .time { font-weight: 700; color: var(--orange); min-width: 60px; font-variant-numeric: tabular-nums; }
+  .agenda .what { color: var(--ink); flex: 1; }
+  .agenda .what b { color: var(--teal-dark); }
+
+  /* Steps (demo) */
+  .steps { list-style: none; margin-top: 24px; counter-reset: step; }
+  .steps li {
+    position: relative; padding: 14px 0 14px 56px;
+    font-size: clamp(16px, 1.5vw, 19px);
+    border-bottom: 1px dashed var(--border);
+  }
+  .steps li:before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute; left: 0; top: 14px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--teal); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li b { color: var(--teal-dark); }
+
+  /* Check list */
+  .checks { list-style: none; margin-top: 28px; max-width: 800px; }
+  .checks li {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    font-size: clamp(16px, 1.4vw, 18px);
+  }
+  .checks li:before {
+    content: '✓';
+    display: flex; align-items: center; justify-content: center;
+    min-width: 32px; width: 32px; height: 32px; border-radius: 50%;
+    background: #16a34a; color: #fff;
+    font-weight: 800; font-size: 16px;
+  }
+  .checks li.x:before { content: '✕'; background: #dc2626; }
+
+  /* People badges */
+  .people { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 26px; }
+  .person {
+    background: #fff; border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 22px; min-width: 220px; flex: 1;
+  }
+  .person h4 { font-size: 17px; color: var(--teal-dark); margin-bottom: 6px; }
+  .person p { font-size: 14px; }
+  .person.daiana { border-top: 4px solid #f59e0b; }
+  .person.carol { border-top: 4px solid var(--teal); }
+  .person.elisangela { border-top: 4px solid var(--orange); }
+
+  /* Big number */
+  .bignum {
+    font-size: clamp(64px, 10vw, 140px);
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+    letter-spacing: -.03em;
+  }
+
+  /* Mark/highlight */
+  mark { background: linear-gradient(180deg, transparent 60%, rgba(242,102,34,.25) 60%); color: inherit; padding: 0 4px; }
+
+  /* Footer/note */
+  .note { margin-top: 32px; padding: 16px 20px; background: var(--bg-soft); border-radius: 12px; border-left: 4px solid var(--teal); }
+  .note b { color: var(--teal-dark); }
+
+  /* Final slide */
+  .final { text-align: center; align-items: center; }
+  .final .big { font-size: clamp(40px, 6vw, 72px); color: var(--teal-dark); font-weight: 800; line-height: 1.05; }
+  .final .big i { font-style: italic; color: var(--orange); }
+  .final p.lead { margin-top: 24px; }
+
+  /* Touch hints */
+  .hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); opacity: .6; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CLINIPOP <b>·</b> Como usar o Kommo</div>
+  <div class="counter"><span id="now">1</span> / <span id="total">16</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1. CAPA -->
+  <section class="slide active cover">
+    <div class="eyebrow">Treinamento da recepção</div>
+    <h1>Como usar o <i>Kommo</i><br/>no dia a dia</h1>
+    <p class="lead">A partir de hoje, todo lead que chegar pelo WhatsApp da clínica cai direto aqui. Vamos aprender a usar — na prática.</p>
+    <div class="meta">
+      <span>👥 Daiana · Carol · Elisangela</span>
+      <span>⏱ ~50 minutos</span>
+      <span>🎙 Conduzido por Eduardo · Sigma</span>
+    </div>
+  </section>
+
+  <!-- 2. ONDE ESTAMOS -->
+  <section class="slide">
+    <div class="eyebrow">Por que esse treino agora</div>
+    <h2>O Google já tá trazendo gente.<br/>Hoje a gente liga as peças.</h2>
+    <div class="grid cols-3">
+      <div class="card teal">
+        <span class="icon">📈</span>
+        <h4>4 contatos em junho</h4>
+        <p>Vieram pelo anúncio do Google. Sem a gente saber como tratar, esse investimento se perde.</p>
+      </div>
+      <div class="card accent">
+        <span class="icon">💬</span>
+        <h4>WhatsApp conectado</h4>
+        <p>Toda mensagem que chegar no número da clínica cai automaticamente aqui no Kommo.</p>
+      </div>
+      <div class="card teal">
+        <span class="icon">⚙️</span>
+        <h4>Régua de follow-up</h4>
+        <p>Se o cliente sumir, o Kommo lembra a gente em 24h, 72h e 7 dias. Vocês não esquecem mais.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. FRASE-ÂNCORA -->
+  <section class="slide quote-slide">
+    <div class="eyebrow">Antes de qualquer coisa</div>
+    <p class="quote">O Kommo <em>NÃO</em> conversa<br/>com o cliente.</p>
+    <p class="quote-cap">É o caderno digital da recepção. Vocês continuam falando com o tutor — só que organizadinho.</p>
+  </section>
+
+  <!-- 4. AGENDA -->
+  <section class="slide">
+    <div class="eyebrow">Como vai ser hoje</div>
+    <h2>5 blocos. 50 minutos.</h2>
+    <ul class="agenda">
+      <li><span class="time">5 min</span><span class="what"><b>Tour das 4 telas</b> · onde fica o quê</span></li>
+      <li><span class="time">20 min</span><span class="what"><b>Demo ao vivo</b> · eu simulo um lead do começo ao fim</span></li>
+      <li><span class="time">15 min</span><span class="what"><b>Mão na massa</b> · cada uma faz um cenário</span></li>
+      <li><span class="time">5 min</span><span class="what"><b>Combinado de ritmo</b> · quem faz o quê no dia a dia</span></li>
+      <li><span class="time">5 min</span><span class="what"><b>Checklist da semana</b> · o que cada uma se compromete</span></li>
+    </ul>
+    <div class="note"><b>Importante:</b> pode interromper a qualquer hora. Dúvida boba não existe — só dúvida que ninguém perguntou.</div>
+  </section>
+
+  <!-- 5. AS 4 TELAS -->
+  <section class="slide">
+    <div class="eyebrow">Tour rápido</div>
+    <h2>As 4 telas que vocês vão usar</h2>
+    <div class="grid cols-4">
+      <div class="card accent">
+        <span class="num">1</span>
+        <h4>Pipeline</h4>
+        <p>Visão geral. Cada coluna é uma etapa. Cada cartãozinho é um tutor.</p>
+      </div>
+      <div class="card accent">
+        <span class="num">2</span>
+        <h4>Cartão do lead</h4>
+        <p>Onde fica tudo do tutor + pet. Nome, espécie, raça, serviço, origem.</p>
+      </div>
+      <div class="card accent">
+        <span class="num">3</span>
+        <h4>Tarefas · Hoje</h4>
+        <p>O que precisa fazer hoje. Abrir essa tela toda manhã.</p>
+      </div>
+      <div class="card accent">
+        <span class="num">4</span>
+        <h4>Conversas</h4>
+        <p>O WhatsApp da clínica fica AQUI dentro. Responde por aqui, não pelo celular.</p>
+      </div>
+    </div>
+    <div class="note"><b>Aviso importante:</b> a partir de hoje, <mark>nunca respondam pelo WhatsApp comum</mark>. Sempre pelo Kommo. Senão perde o histórico e a régua não funciona.</div>
+  </section>
+
+  <!-- 6. DEMO INTRO -->
+  <section class="slide">
+    <div class="eyebrow">Demo ao vivo</div>
+    <h2>Vou simular um lead inteiro<br/>do "oi" até "GANHO"</h2>
+    <p class="lead">Eu vou ser a "Maria, dona da gata Mel". Vou mandar oi pelo WhatsApp. Acompanhem o que aparece aqui na tela.</p>
+    <div class="note"><b>Foco em 3 coisas:</b> <br/>1) Como o lead aparece sozinho · 2) O que vocês fazem nele · 3) O que o Kommo faz sozinho</div>
+  </section>
+
+  <!-- 7. PASSO A PASSO DEMO -->
+  <section class="slide">
+    <div class="eyebrow">Ciclo completo do lead</div>
+    <h2>Os passos que estão acontecendo</h2>
+    <ul class="steps">
+      <li><b>Tutor manda mensagem</b> → aparece em <b>Leads de entrada</b> automaticamente</li>
+      <li>Recepção <b>responde pelo Kommo</b> (não pelo WhatsApp comum) e qualifica o caso</li>
+      <li>Recepção <b>arrasta o cartão pra "Triagem / Qualificação"</b> e preenche os campos do pet</li>
+      <li>Se virou agendamento → <b>arrasta pra "Agendamento"</b></li>
+      <li>No dia da consulta → <b>"Em Atendimento"</b> → <b>"Atendimento Concluído – GANHO"</b></li>
+      <li>Se o cliente sumir em qualquer etapa → o Kommo cria <b>tarefa de follow-up</b> sozinho</li>
+    </ul>
+  </section>
+
+  <!-- 8. A RÉGUA -->
+  <section class="slide">
+    <div class="eyebrow">A automação que vai mudar tudo</div>
+    <h2>O Kommo lembra por vocês.</h2>
+    <div class="grid cols-4">
+      <div class="card teal">
+        <span class="bignum" style="font-size:48px">D+1</span>
+        <p style="margin-top:8px"><b>Follow-up 1</b><br/>Reforçar interesse</p>
+      </div>
+      <div class="card teal">
+        <span class="bignum" style="font-size:48px">D+3</span>
+        <p style="margin-top:8px"><b>Follow-up 2</b><br/>Oferecer horário alternativo</p>
+      </div>
+      <div class="card teal">
+        <span class="bignum" style="font-size:48px">D+7</span>
+        <p style="margin-top:8px"><b>Follow-up 3</b><br/>Última tentativa</p>
+      </div>
+      <div class="card warn">
+        <span class="bignum" style="font-size:48px">D+10</span>
+        <p style="margin-top:8px"><b>Lead perdido</b><br/>Move pra "Perdido" automático</p>
+      </div>
+    </div>
+    <div class="note">A tarefa aparece em <b>Tarefas → Hoje</b>. Vocês só executam — não precisam lembrar a data, o sistema cuida.</div>
+  </section>
+
+  <!-- 9. VEZ DE VOCÊS -->
+  <section class="slide quote-slide">
+    <div class="eyebrow">Mão na massa</div>
+    <p class="quote">Agora <em>vocês</em>.</p>
+    <p class="quote-cap">Daiana, Carol — cada uma vai simular um cenário. Eu sou o cliente. Errar tá ok.</p>
+  </section>
+
+  <!-- 10. CENÁRIOS PRA PRATICAR -->
+  <section class="slide">
+    <div class="eyebrow">Cenários que vocês vão treinar</div>
+    <h2>3 situações reais</h2>
+    <div class="grid cols-3">
+      <div class="card accent">
+        <h4>1. Lead novo "oi"</h4>
+        <p><b>Daiana</b> conduz. Cliente manda "oi, queria saber se atende felino". Recepção responde pelo Kommo, qualifica, move pra Triagem.</p>
+      </div>
+      <div class="card accent">
+        <h4>2. "Quanto custa?"</h4>
+        <p><b>Carol</b> conduz. Cliente pergunta direto o preço. Recepção ancora valor com diferenciais (exames próprios, busca/entrega).</p>
+      </div>
+      <div class="card accent">
+        <h4>3. Tarefa de follow-up</h4>
+        <p>Lead-teste que está há 24h em Triagem. O Kommo já criou a tarefa "Follow-up 1". Vamos abrir e executar.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. QUEM FAZ O QUÊ -->
+  <section class="slide">
+    <div class="eyebrow">Combinado de ritmo</div>
+    <h2>Quem faz o quê no dia a dia</h2>
+    <div class="people">
+      <div class="person daiana">
+        <h4>Daiana</h4>
+        <p>Recebe lead novo, qualifica, move etapa. Conclui tarefas de follow-up. Segue os scripts do playbook.</p>
+      </div>
+      <div class="person carol">
+        <h4>Carol</h4>
+        <p>Mesmo que a Daiana + casos fora do padrão (preço, desconto, dúvida clínica complexa). Ajuda a Daiana quando travar.</p>
+      </div>
+      <div class="person elisangela">
+        <h4>Elisangela</h4>
+        <p>Só entra quando vier pedido de <b>desconto</b> ou <b>doação</b>. A recepção encaminha, ela decide.</p>
+      </div>
+    </div>
+    <div class="note"><b>Regra de ouro:</b> qualquer dúvida que não couber em ninguém → me chama no WhatsApp. Não deixa o lead esperando.</div>
+  </section>
+
+  <!-- 12. 4 ERROS COMUNS -->
+  <section class="slide">
+    <div class="eyebrow">Cuidado com isso</div>
+    <h2>4 coisas pra <mark>NÃO fazer</mark></h2>
+    <ul class="checks">
+      <li class="x">Responder cliente pelo WhatsApp comum do celular (sempre pelo Kommo)</li>
+      <li class="x">Apagar lead que não respondeu — move pra "Perdido" com motivo</li>
+      <li class="x">Mexer em colunas, etapas ou configurações sem combinar comigo</li>
+      <li class="x">Criar tag ou campo novo — qualquer pedido novo, me chama</li>
+    </ul>
+  </section>
+
+  <!-- 13. CHECKLIST DA SEMANA -->
+  <section class="slide">
+    <div class="eyebrow">Combinado da semana</div>
+    <h2>O que cada uma se compromete</h2>
+    <ul class="checks">
+      <li>Responder lead em até <b>10 minutos</b> no horário comercial</li>
+      <li><b>Sempre</b> responder pelo Kommo, nunca pelo WhatsApp comum</li>
+      <li>Marcar a <b>etapa correta</b> cada vez que mexer no lead</li>
+      <li>Abrir <b>Tarefas → Hoje</b> toda manhã, antes de qualquer coisa</li>
+      <li>Concluir a tarefa quando fizer (não deixa pendurada)</li>
+      <li>Desconto / doação → encaminhar pra <b>Elisangela</b></li>
+    </ul>
+  </section>
+
+  <!-- 14. APÓS A CALL -->
+  <section class="slide">
+    <div class="eyebrow">O que vem depois</div>
+    <h2>Mando 3 coisas no grupo hoje</h2>
+    <div class="grid cols-3">
+      <div class="card teal">
+        <span class="num">1</span>
+        <h4>Manual em PDF</h4>
+        <p>Pra consultar sempre que tiver dúvida. Guarda no celular.</p>
+      </div>
+      <div class="card teal">
+        <span class="num">2</span>
+        <h4>Cheatsheet</h4>
+        <p>Cola de 1 página. Imprime e cola perto do computador.</p>
+      </div>
+      <div class="card teal">
+        <span class="num">3</span>
+        <h4>Checklist diário</h4>
+        <p>Os 6 compromissos de hoje, em formato pra colar no espelho.</p>
+      </div>
+    </div>
+    <div class="note"><b>Daqui 1 semana</b> a gente faz um check-in rápido pra ver como tá indo. Se travar antes, é só me chamar.</div>
+  </section>
+
+  <!-- 15. METAS -->
+  <section class="slide">
+    <div class="eyebrow">Para onde vamos</div>
+    <h2>O que muda nas próximas 4 semanas</h2>
+    <div class="grid cols-2">
+      <div class="card success">
+        <h4>✅ O que JÁ era bom</h4>
+        <p>O atendimento de vocês. O carinho com o pet. A reputação de 12 anos. Nada disso muda.</p>
+      </div>
+      <div class="card accent">
+        <h4>📈 O que vai melhorar</h4>
+        <p>Nenhum lead perdido por esquecimento. Histórico organizado. Vocês com menos peso na cabeça. Mais agendamentos fechados.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:32px">A meta no fim do mês: a Elisangela ver no relatório <b>quantos contatos chegaram</b>, <b>quantos viraram consulta</b> e <b>quanto entrou de caixa</b>. Pela primeira vez na história da clínica.</p>
+  </section>
+
+  <!-- 16. FINAL -->
+  <section class="slide final">
+    <div class="eyebrow">Bora</div>
+    <p class="big">Qualquer dúvida<br/>essa semana — <i>chamem</i>.</p>
+    <p class="lead">É hora de testar na prática. Vai ter ajuste pelo caminho. Faz parte.</p>
+    <div class="note" style="margin-top:40px; max-width:600px"><b>WhatsApp do Eduardo:</b> está no grupo da equipe. Pra qualquer travamento, manda print e a gente desencalha em segundos.</div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" onclick="go(-1)">← Anterior</button>
+  <div class="progress"><div class="progress-fill" id="pf"></div></div>
+  <button id="next" onclick="go(1)">Próximo →</button>
+</div>
+
+<div class="hint">← → setas · espaço avança · swipe no celular</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  document.getElementById('total').textContent = total;
+  let i = 0;
+
+  function show(n) {
+    n = Math.max(0, Math.min(total - 1, n));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === n));
+    document.getElementById('now').textContent = n + 1;
+    document.getElementById('pf').style.width = ((n + 1) / total * 100) + '%';
+    document.getElementById('prev').disabled = (n === 0);
+    document.getElementById('next').disabled = (n === total - 1);
+    i = n;
+    history.replaceState(null, '', '#' + (n + 1));
+  }
+  window.go = function(d) { show(i + d); };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+  });
+
+  // Touch swipe
+  let startX = null;
+  document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) { go(dx < 0 ? 1 : -1); }
+    startX = null;
+  }, { passive: true });
+
+  // Hash deep-link
+  const hash = parseInt(location.hash.replace('#', ''), 10);
+  if (!isNaN(hash) && hash >= 1 && hash <= total) show(hash - 1);
+  else show(0);
+})();
+</script>
+
+</body>
+</html>
